@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { from } from 'rxjs';
 import { PostDTO } from 'src/app/Models/post.dto';
 import { PostService } from 'src/app/Services/post.service';
 import { SharedService } from 'src/app/Services/shared.service';
@@ -20,21 +21,34 @@ export class DashboardComponent implements OnInit {
   ) {}
 
   async ngOnInit(): Promise<void> {
-    await this.loadPosts();
+    const postsObservable = from(this.loadPosts());
 
-    this.posts.forEach((post) => {
-      this.numLikes = this.numLikes + post.num_likes;
-      this.numDislikes = this.numDislikes + post.num_dislikes;
-    });
+    postsObservable.subscribe((posts: PostDTO[]) => {
+        this.posts = posts;
+        this.posts.forEach((post) => {
+          this.numLikes = this.numLikes + post.num_likes;
+          this.numDislikes = this.numDislikes + post.num_dislikes;
+        });
+      });
   }
 
-  private async loadPosts(): Promise<void> {
+  private async loadPosts(): Promise<PostDTO[]> {
     let errorResponse: any;
-    try {
-      this.posts = await this.postService.getPosts();
-    } catch (error: any) {
-      errorResponse = error.error;
-      this.sharedService.errorLog(errorResponse);
-    }
+
+    return new Promise<PostDTO[]>((response, reject) => {
+      let postsPromise!: PostDTO[];
+      this.postService.getPosts().subscribe({
+      next: (posts: PostDTO[]) => {
+        postsPromise = posts;
+      },
+      error: (error: any) => {
+        errorResponse = error.error;
+        this.sharedService.errorLog(errorResponse);
+        reject(error);
+      },
+      complete: () => {
+        response(postsPromise);
+      }
+    })});
   }
 }

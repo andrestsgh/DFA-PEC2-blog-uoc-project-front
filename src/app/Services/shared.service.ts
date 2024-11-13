@@ -1,4 +1,6 @@
 import { Injectable } from '@angular/core';
+import { Observable, of, timer } from 'rxjs';
+import { mapTo, switchMap, tap } from 'rxjs/operators';
 
 export interface ResponseError {
   statusCode: number;
@@ -16,18 +18,17 @@ export interface ResponseError {
 export class SharedService {
   constructor() {}
 
-  async managementToast(
-    element: string,
-    validRequest: boolean,
+  managementToast(
+    element: string, 
+    validRequest: boolean, 
     error?: ResponseError
-  ): Promise<void> {
+  ): Observable<void> {
     const toastMsg = document.getElementById(element);
+  
     if (toastMsg) {
       if (validRequest) {
         toastMsg.className = 'show requestOk';
         toastMsg.textContent = 'Form submitted successfully.';
-        await this.wait(2500);
-        toastMsg.className = toastMsg.className.replace('show', '');
       } else {
         toastMsg.className = 'show requestKo';
         if (error?.messageDetail) {
@@ -45,11 +46,20 @@ export class SharedService {
             '. Status code: ' +
             error?.statusCode;
         }
-
-        await this.wait(2500);
-        toastMsg.className = toastMsg.className.replace('show', '');
       }
+      
+      return of(null).pipe(
+        switchMap(() => timer(2500)),
+        tap(() => {
+          toastMsg.className = toastMsg.className.replace('show', '');
+        }),
+        // Convierte el último valor emitido en `undefined` para hacerlo compatible con Observable<void>
+        mapTo(undefined)
+      );
     }
+  
+    // Devuelve un Observable<void> vacío si no hay mensaje
+    return of();
   }
 
   errorLog(error: ResponseError): void {

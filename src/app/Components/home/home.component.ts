@@ -42,33 +42,40 @@ export class HomeComponent {
     if (userId) {
       this.showButtons = true;
     }
-    try {
-      this.posts = await this.postService.getPosts();
-    } catch (error: any) {
-      errorResponse = error.error;
-      this.sharedService.errorLog(errorResponse);
-    }
+    this.postService.getPosts().subscribe({
+      next: (posts: PostDTO[]) => {
+        this.posts = posts;
+      },
+      error: (error: any) => {
+        errorResponse = error.error;
+        this.sharedService.errorLog(errorResponse);
+      }
+    });
   }
 
   async like(postId: string): Promise<void> {
     let errorResponse: any;
-    try {
-      await this.postService.likePost(postId);
-      this.loadPosts();
-    } catch (error: any) {
-      errorResponse = error.error;
-      this.sharedService.errorLog(errorResponse);
-    }
+    this.postService.likePost(postId).subscribe({
+      next: () => {
+        this.loadPosts();
+      },
+      error: (error: any) => {
+        errorResponse = error.error;
+        this.sharedService.errorLog(errorResponse);
+      }
+    });
   }
 
   async dislike(postId: string): Promise<void> {
     let errorResponse: any;
-    try {
-      await this.postService.dislikePost(postId);
-      this.loadPosts();
-    } catch (error: any) {
-      errorResponse = error.error;
-      this.sharedService.errorLog(errorResponse);
-    }
+    this.postService.dislikePost(postId).subscribe({
+      next: () => {
+        this.loadPosts();
+      },
+      error: (error: any) => {
+        errorResponse = error.error;
+        this.sharedService.errorLog(errorResponse);
+      }
+    });
   }
 }

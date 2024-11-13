@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
+import { finalize } from 'rxjs/operators';
 import { CategoryDTO } from 'src/app/Models/category.dto';
 import { CategoryService } from 'src/app/Services/category.service';
 import { LocalStorageService } from 'src/app/Services/local-storage.service';
@@ -11,6 +12,7 @@ import { SharedService } from 'src/app/Services/shared.service';
   styleUrls: ['./categories-list.component.scss'],
 })
 export class CategoriesListComponent {
+  category!: CategoryDTO;
   categories!: CategoryDTO[];
 
   constructor(
@@ -26,14 +28,15 @@ export class CategoriesListComponent {
     let errorResponse: any;
     const userId = this.localStorageService.get('user_id');
     if (userId) {
-      try {
-        this.categories = await this.categoryService.getCategoriesByUserId(
-          userId
-        );
-      } catch (error: any) {
-        errorResponse = error.error;
-        this.sharedService.errorLog(errorResponse);
-      }
+      this.categoryService.getCategoriesByUserId(userId).subscribe({
+        next: (categories: CategoryDTO[]) => {
+          this.categories = categories;
+        },
+        error: (error: any) => {
+          errorResponse = error.error;
+          this.sharedService.errorLog(errorResponse);
+        }
+      });
     }
   }
 
@@ -41,8 +44,40 @@ export class CategoriesListComponent {
     this.router.navigateByUrl('/user/category/');
   }
 
-  updateCategory(categoryId: string): void {
-    this.router.navigateByUrl('/user/category/' + categoryId);
+  async updateCategory(categoryId: string): Promise<void> {
+    let responseOK: boolean = false;
+    let errorResponse: any;
+
+    // update
+    if (categoryId) {
+      this.categoryService.getCategoryById(
+        categoryId
+      ).pipe(
+        finalize(() => {
+          // Evaluo así la respuesta para que sólo muestre el Toast en caso de error.
+          if (!responseOK){
+            this.sharedService.managementToast(
+              'categoryFeedback',
+              responseOK,
+              errorResponse
+            ).subscribe();
+          } else {
+            this.router.navigate(['/user/category', categoryId], {
+              queryParams: { category: JSON.stringify(this.category) }
+            });
+          }
+        })
+      ).subscribe({
+        next: (category: CategoryDTO) => {
+          responseOK = true;
+          this.category = category;
+        },
+        error: (error: any) => {
+          errorResponse = error.error;
+          this.sharedService.errorLog(errorResponse);
+        }
+      });
+    }
   }
 
   async deleteCategory(categoryId: string): Promise<void> {
@@ -53,17 +88,17 @@ export class CategoriesListComponent {
       'Confirm delete category with id: ' + categoryId + ' .'
     );
     if (result) {
-      try {
-        const rowsAffected = await this.categoryService.deleteCategory(
-          categoryId
-        );
-        if (rowsAffected.affected > 0) {
-          this.loadCategories();
+      this.categoryService.deleteCategory(categoryId).subscribe({
+        next: (rowsAffected) => {
+          if (rowsAffected.affected > 0) {
+            this.loadCategories();
+          }
+        },
+        error: (error: any) => {
+          errorResponse = error.error;
+          this.sharedService.errorLog(errorResponse);
         }
-      } catch (error: any) {
-        errorResponse = error.error;
-        this.sharedService.errorLog(errorResponse);
-      }
+      });
     }
   }
 }

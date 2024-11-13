@@ -3,6 +3,7 @@ import { NONE_TYPE } from '@angular/compiler';
 import { Injectable } from '@angular/core';
 import { PostDTO } from '../Models/post.dto';
 import { environment } from 'src/environments/environment';
+import { Observable } from 'rxjs';
 
 interface updateResponse {
   affected: number;
@@ -24,47 +25,41 @@ export class PostService {
     this.urlBlogUocApi = environment.apiUrl + this.controller;
   }
 
-  getPosts(): Promise<PostDTO[]> {
-    return this.http.get<PostDTO[]>(this.urlBlogUocApi).toPromise();
+  getPosts(): Observable<PostDTO[]> {
+    return this.http.get<PostDTO[]>(this.urlBlogUocApi);
   }
 
-  getPostsByUserId(userId: string): Promise<PostDTO[]> {
+  getPostsByUserId(userId: string): Observable<PostDTO[]> {
     return this.http
-      .get<PostDTO[]>(environment.apiUrl + 'users/posts/' + userId)
-      .toPromise();
+      .get<PostDTO[]>(environment.apiUrl + 'users/posts/' + userId);
   }
 
-  createPost(post: PostDTO): Promise<PostDTO> {
-    return this.http.post<PostDTO>(this.urlBlogUocApi, post).toPromise();
+  createPost(post: PostDTO): Observable<PostDTO> {
+    return this.http.post<PostDTO>(this.urlBlogUocApi, post);
   }
 
-  getPostById(postId: string): Promise<PostDTO> {
+  getPostById(postId: string): Observable<PostDTO> {
     return this.http
-      .get<PostDTO>(this.urlBlogUocApi + '/' + postId)
-      .toPromise();
+      .get<PostDTO>(this.urlBlogUocApi + '/' + postId);
   }
 
-  updatePost(postId: string, post: PostDTO): Promise<PostDTO> {
+  updatePost(postId: string | null, post: PostDTO): Observable<PostDTO> {
     return this.http
-      .put<PostDTO>(this.urlBlogUocApi + '/' + postId, post)
-      .toPromise();
+      .put<PostDTO>(this.urlBlogUocApi + '/' + postId, post);
   }
 
-  likePost(postId: string): Promise<updateResponse> {
+  likePost(postId: string): Observable<updateResponse> {
     return this.http
-      .put<updateResponse>(this.urlBlogUocApi + '/like/' + postId, NONE_TYPE)
-      .toPromise();
+      .put<updateResponse>(this.urlBlogUocApi + '/like/' + postId, NONE_TYPE);
   }
 
-  dislikePost(postId: string): Promise<updateResponse> {
+  dislikePost(postId: string): Observable<updateResponse> {
     return this.http
-      .put<updateResponse>(this.urlBlogUocApi + '/dislike/' + postId, NONE_TYPE)
-      .toPromise();
+      .put<updateResponse>(this.urlBlogUocApi + '/dislike/' + postId, NONE_TYPE);
   }
 
-  deletePost(postId: string): Promise<deleteResponse> {
+  deletePost(postId: string): Observable<deleteResponse> {
     return this.http
-      .delete<deleteResponse>(this.urlBlogUocApi + '/' + postId)
-      .toPromise();
+      .delete<deleteResponse>(this.urlBlogUocApi + '/' + postId);
   }
 }

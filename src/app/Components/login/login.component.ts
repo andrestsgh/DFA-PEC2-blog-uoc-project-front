@@ -6,6 +6,7 @@ import {
   Validators,
 } from '@angular/forms';
 import { Router } from '@angular/router';
+import { finalize } from 'rxjs/operators';
 import { AuthDTO } from 'src/app/Models/auth.dto';
 import { HeaderMenus } from 'src/app/Models/header-menus.dto';
 import { AuthService } from 'src/app/Services/auth.service';
@@ -59,40 +60,46 @@ export class LoginComponent implements OnInit {
 
     this.loginUser.email = this.email.value;
     this.loginUser.password = this.password.value;
-    try {
-      const authToken = await this.authService.login(this.loginUser);
-      responseOK = true;
-      this.loginUser.user_id = authToken.user_id;
-      this.loginUser.access_token = authToken.access_token;
-      // save token to localstorage for next requests
-      this.localStorageService.set('user_id', this.loginUser.user_id);
-      this.localStorageService.set('access_token', this.loginUser.access_token);
-    } catch (error: any) {
-      responseOK = false;
-      errorResponse = error.error;
-      const headerInfo: HeaderMenus = {
-        showAuthSection: false,
-        showNoAuthSection: true,
-      };
-      this.headerMenusService.headerManagement.next(headerInfo);
 
-      this.sharedService.errorLog(error.error);
-    }
-
-    await this.sharedService.managementToast(
-      'loginFeedback',
-      responseOK,
-      errorResponse
-    );
-
-    if (responseOK) {
-      const headerInfo: HeaderMenus = {
-        showAuthSection: true,
-        showNoAuthSection: false,
-      };
-      // update options menu
-      this.headerMenusService.headerManagement.next(headerInfo);
-      this.router.navigateByUrl('home');
-    }
+    this.authService.login(this.loginUser).pipe(
+      // Uso finalize porque al usar complete no funciona en caso de error
+      finalize(() => {
+        this.sharedService.managementToast(
+          'loginFeedback',
+          responseOK,
+          errorResponse
+        ).subscribe(() => {
+          if (responseOK) {
+            const headerInfo: HeaderMenus = {
+              showAuthSection: true,
+              showNoAuthSection: false,
+            };
+            // update options menu
+            this.headerMenusService.headerManagement.next(headerInfo);
+            this.router.navigateByUrl('home');
+          }
+        });
+      })
+    ).subscribe({
+      next: (authToken) => {
+        responseOK = true;
+        this.loginUser.user_id = authToken.user_id;
+        this.loginUser.access_token = authToken.access_token;
+        // save token to localstorage for next requests
+        this.localStorageService.set('user_id', this.loginUser.user_id);
+        this.localStorageService.set('access_token', this.loginUser.access_token);
+      },
+      error: (error: any) => {
+        responseOK = false;
+        errorResponse = error.error;
+        const headerInfo: HeaderMenus = {
+          showAuthSection: false,
+          showNoAuthSection: true,
+        };
+        this.headerMenusService.headerManagement.next(headerInfo);
+  
+        this.sharedService.errorLog(error.error);
+      }
+    });
   }
 }

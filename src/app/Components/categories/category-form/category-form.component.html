@@ -58,6 +58,9 @@
           <div *ngIf="css_color.errors.maxlength">
             Css color can be max 7 characters long.
           </div>
+          <div *ngIf="css_color.errors.pattern">
+            Css color must be in the format #RRGGBB.
+          </div>
         </div>
       </div>
     </div>
