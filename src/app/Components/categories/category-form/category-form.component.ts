@@ -7,7 +7,7 @@ import {
 } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { from, of } from 'rxjs';
-import { finalize, map } from 'rxjs/operators';
+import { finalize } from 'rxjs/operators';
 import { CategoryDTO } from 'src/app/Models/category.dto';
 import { CategoryService } from 'src/app/Services/category.service';
 import { LocalStorageService } from 'src/app/Services/local-storage.service';
@@ -77,7 +77,6 @@ export class CategoryFormComponent implements OnInit {
 
   ngOnInit() {
     // update
-
     if (this.category){
 
       this.title.setValue(this.category.title);
@@ -92,34 +91,6 @@ export class CategoryFormComponent implements OnInit {
         css_color: this.css_color,
       });
     }
-    
-    /*
-    let errorResponse: any;
-    if (this.categoryId) {
-      this.isUpdateMode = true;
-      this.categoryService.getCategoryById(
-        this.categoryId
-      ).subscribe({
-        next: (category: CategoryDTO) => {
-          this.category = category;
-          this.title.setValue(this.category.title);
-
-          this.description.setValue(this.category.description);
-  
-          this.css_color.setValue(this.category.css_color);
-  
-          this.categoryForm = this.formBuilder.group({
-            title: this.title,
-            description: this.description,
-            css_color: this.css_color,
-          });
-        },
-        error: (error: any) => {
-          errorResponse = error.error;
-          this.sharedService.errorLog(errorResponse);
-        }
-      });
-    }*/
   }
 
   private async editCategory(): Promise<boolean> {
@@ -187,7 +158,6 @@ export class CategoryFormComponent implements OnInit {
       ).subscribe({
         next: () => {
           responseOK = true;
-          console.log(this.category);
         },
         error: (error: any) => {
           errorResponse = error.error;

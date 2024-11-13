@@ -7,8 +7,8 @@ import {
   Validators,
 } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Observable, from, of } from 'rxjs';
-import { catchError, finalize, mapTo, tap } from 'rxjs/operators';
+import { from, of } from 'rxjs';
+import { finalize } from 'rxjs/operators';
 import { CategoryDTO } from 'src/app/Models/category.dto';
 import { PostDTO } from 'src/app/Models/post.dto';
 import { CategoryService } from 'src/app/Services/category.service';
@@ -195,6 +195,7 @@ export class PostFormComponent implements OnInit {
     let responseOK: boolean = false;
     const userId = this.localStorageService.get('user_id');
     if (userId) {
+      this.post.userId = userId;
       return new Promise<boolean>((response) => 
       this.postService.createPost(this.post).pipe(
         finalize(() => {
