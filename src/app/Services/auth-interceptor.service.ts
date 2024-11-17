@@ -6,23 +6,29 @@ import {
 } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { LocalStorageService } from './local-storage.service';
+import { Store } from '@ngrx/store';
+import { AuthState } from '../reducers/auth.reducer';
+import { selectAccessToken } from '../selectors/auth.selectors';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthInterceptorService implements HttpInterceptor {
-  access_token: string | null;
+  access_token!: string | null;
 
-  constructor(private localStorageService: LocalStorageService) {
-    this.access_token = this.localStorageService.get('access_token');
+  constructor(private store: Store<AuthState>) {
+    this.store.select(selectAccessToken).subscribe((access_token) => {
+      this.access_token = access_token;
+    });
   }
 
   intercept(
     req: HttpRequest<any>,
     next: HttpHandler
   ): Observable<HttpEvent<any>> {
-    this.access_token = this.localStorageService.get('access_token');
+    this.store.select(selectAccessToken).subscribe((access_token) => {
+      this.access_token = access_token;
+    });
     if (this.access_token) {
       req = req.clone({
         setHeaders: {

@@ -6,11 +6,13 @@ import {
   UntypedFormGroup,
   Validators,
 } from '@angular/forms';
+import { Store } from '@ngrx/store';
 import { finalize } from 'rxjs/operators';
 import { UserDTO } from 'src/app/Models/user.dto';
-import { LocalStorageService } from 'src/app/Services/local-storage.service';
 import { SharedService } from 'src/app/Services/shared.service';
 import { UserService } from 'src/app/Services/user.service';
+import { AuthState } from 'src/app/reducers/auth.reducer';
+import { selectUserId } from 'src/app/selectors/auth.selectors';
 
 @Component({
   selector: 'app-profile',
@@ -31,15 +33,23 @@ export class ProfileComponent implements OnInit {
   profileForm: UntypedFormGroup;
   isValidForm: boolean | null;
 
+  private userId: string;
+
   constructor(
+    private store: Store<AuthState>,
     private formBuilder: UntypedFormBuilder,
     private userService: UserService,
-    private sharedService: SharedService,
-    private localStorageService: LocalStorageService
+    private sharedService: SharedService
   ) {
+    this.userId = "";
+
     this.profileUser = new UserDTO('', '', '', '', new Date(), '', '');
 
     this.isValidForm = null;
+
+    this.store.select(selectUserId).subscribe((userId) => {
+      this.userId = userId;
+    });
 
     this.name = new UntypedFormControl(this.profileUser.name, [
       Validators.required,
@@ -94,10 +104,9 @@ export class ProfileComponent implements OnInit {
     let errorResponse: any;
 
     // load user data
-    const userId = this.localStorageService.get('user_id');
-    if (userId) {
+    if (this.userId) {
       this.userService.getUSerById(
-        userId
+        this.userId
       ).subscribe({
         next: (userData: UserDTO) => {
           this.name.setValue(userData.name);
@@ -139,10 +148,8 @@ export class ProfileComponent implements OnInit {
     this.isValidForm = true;
     this.profileUser = this.profileForm.value;
 
-    const userId = this.localStorageService.get('user_id');
-
-    if (userId) {
-      this.userService.updateUser(userId, this.profileUser).pipe(
+    if (this.userId) {
+      this.userService.updateUser(this.userId, this.profileUser).pipe(
         finalize(() => {
           this.sharedService.managementToast(
             'profileFeedback',

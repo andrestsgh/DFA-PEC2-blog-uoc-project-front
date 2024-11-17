@@ -6,12 +6,14 @@ import {
   Validators,
 } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { Store } from '@ngrx/store';
 import { from, of } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 import { CategoryDTO } from 'src/app/Models/category.dto';
 import { CategoryService } from 'src/app/Services/category.service';
-import { LocalStorageService } from 'src/app/Services/local-storage.service';
 import { SharedService } from 'src/app/Services/shared.service';
+import { AuthState } from 'src/app/reducers/auth.reducer';
+import { selectUserId } from 'src/app/selectors/auth.selectors';
 
 @Component({
   selector: 'app-category-form',
@@ -30,18 +32,20 @@ export class CategoryFormComponent implements OnInit {
   private isUpdateMode: boolean;
   private validRequest: boolean;
   private categoryId: string | null;
+  private userId: string;
 
   constructor(
+    private store: Store<AuthState>,
     private activatedRoute: ActivatedRoute,
     private categoryService: CategoryService,
     private formBuilder: UntypedFormBuilder,
     private router: Router,
     private sharedService: SharedService,
-    private localStorageService: LocalStorageService
   ) {
     this.isValidForm = null;
     this.isUpdateMode = false;
     this.validRequest = false;
+    this.userId = "";
 
     this.categoryId = this.activatedRoute.snapshot.paramMap.get('id');
     const categoryJSON = this.activatedRoute.snapshot.queryParamMap.get('category');
@@ -51,6 +55,10 @@ export class CategoryFormComponent implements OnInit {
     } else {
       this.category = new CategoryDTO('', '', '');
     }
+
+    this.store.select(selectUserId).subscribe((userId) => {
+      this.userId = userId;
+    });
 
     this.title = new UntypedFormControl(this.category.title, [
       Validators.required,
@@ -98,9 +106,8 @@ export class CategoryFormComponent implements OnInit {
     let responseOK: boolean = false;
 
     if (this.categoryId) {
-      const userId = this.localStorageService.get('user_id');
-      if (userId) {
-        this.category.userId = userId;
+      if (this.userId) {
+        this.category.userId = this.userId;
         return new Promise<boolean>((response) => 
         this.categoryService.updateCategory(this.categoryId, this.category).pipe(
           finalize(() => {
@@ -138,10 +145,9 @@ export class CategoryFormComponent implements OnInit {
   private async createCategory(): Promise<boolean> {
     let errorResponse: any;
     let responseOK: boolean = false;
-    const userId = this.localStorageService.get('user_id');
 
-    if (userId) {
-      this.category.userId = userId;
+    if (this.userId) {
+      this.category.userId = this.userId;
       return new Promise<boolean>((response) => 
       this.categoryService.createCategory(this.category).pipe(
         finalize(() => {

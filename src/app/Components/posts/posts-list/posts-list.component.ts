@@ -1,9 +1,11 @@
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
+import { Store } from '@ngrx/store';
 import { PostDTO } from 'src/app/Models/post.dto';
-import { LocalStorageService } from 'src/app/Services/local-storage.service';
 import { PostService } from 'src/app/Services/post.service';
 import { SharedService } from 'src/app/Services/shared.service';
+import { AuthState } from 'src/app/reducers/auth.reducer';
+import { selectUserId } from 'src/app/selectors/auth.selectors';
 
 @Component({
   selector: 'app-posts-list',
@@ -12,20 +14,26 @@ import { SharedService } from 'src/app/Services/shared.service';
 })
 export class PostsListComponent {
   posts!: PostDTO[];
+  private userId: string;
+
   constructor(
     private postService: PostService,
     private router: Router,
-    private localStorageService: LocalStorageService,
+    private store: Store<AuthState>,
     private sharedService: SharedService
   ) {
+    this.userId = "";
+    this.store.select(selectUserId).subscribe((userId) => {
+      this.userId = userId;
+    });
+    
     this.loadPosts();
   }
 
   private async loadPosts(): Promise<void> {
     let errorResponse: any;
-    const userId = this.localStorageService.get('user_id');
-    if (userId) {
-      this.postService.getPostsByUserId(userId).subscribe({
+    if (this.userId) {
+      this.postService.getPostsByUserId(this.userId).subscribe({
         next: (posts: PostDTO[]) => {
           this.posts = posts;
         },

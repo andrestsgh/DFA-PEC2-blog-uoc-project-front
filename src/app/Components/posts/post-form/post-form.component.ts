@@ -7,14 +7,16 @@ import {
   Validators,
 } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { Store } from '@ngrx/store';
 import { from, of } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 import { CategoryDTO } from 'src/app/Models/category.dto';
 import { PostDTO } from 'src/app/Models/post.dto';
 import { CategoryService } from 'src/app/Services/category.service';
-import { LocalStorageService } from 'src/app/Services/local-storage.service';
 import { PostService } from 'src/app/Services/post.service';
 import { SharedService } from 'src/app/Services/shared.service';
+import { AuthState } from 'src/app/reducers/auth.reducer';
+import { selectUserId } from 'src/app/selectors/auth.selectors';
 
 @Component({
   selector: 'app-post-form',
@@ -36,6 +38,7 @@ export class PostFormComponent implements OnInit {
   private isUpdateMode: boolean;
   private validRequest: boolean;
   private postId: string | null;
+  private userId: string;
 
   categoriesList!: CategoryDTO[];
 
@@ -45,15 +48,20 @@ export class PostFormComponent implements OnInit {
     private formBuilder: UntypedFormBuilder,
     private router: Router,
     private sharedService: SharedService,
-    private localStorageService: LocalStorageService,
+    private store: Store<AuthState>,
     private categoryService: CategoryService
   ) {
+    this.userId = "";
     this.isValidForm = null;
     this.postId = this.activatedRoute.snapshot.paramMap.get('id');
     this.post = new PostDTO('', '', 0, 0, new Date());
     this.isUpdateMode = false;
     this.validRequest = false;
-
+    
+    this.store.select(selectUserId).subscribe((userId) => {
+      this.userId = userId;
+    });
+    
     this.title = new UntypedFormControl(this.post.title, [
       Validators.required,
       Validators.maxLength(55),
@@ -89,9 +97,8 @@ export class PostFormComponent implements OnInit {
 
   private async loadCategories(): Promise<void> {
     let errorResponse: any;
-    const userId = this.localStorageService.get('user_id');
-    if (userId) {
-      this.categoryService.getCategoriesByUserId(userId).subscribe({
+    if (this.userId) {
+      this.categoryService.getCategoriesByUserId(this.userId).subscribe({
         next: (categories: CategoryDTO[]) => {
           this.categoriesList = categories;
         },
@@ -153,9 +160,8 @@ export class PostFormComponent implements OnInit {
     let responseOK: boolean = false;
 
     if (this.postId) {
-      const userId = this.localStorageService.get('user_id');
-      if (userId) {
-        this.post.userId = userId;
+      if (this.userId) {
+        this.post.userId = this.userId;
         return new Promise<boolean>((response) => 
         this.postService.updatePost(this.postId, this.post).pipe(
           finalize(() => {
@@ -193,9 +199,8 @@ export class PostFormComponent implements OnInit {
   private async createPost(): Promise<boolean> {
     let errorResponse: any;
     let responseOK: boolean = false;
-    const userId = this.localStorageService.get('user_id');
-    if (userId) {
-      this.post.userId = userId;
+    if (this.userId) {
+      this.post.userId = this.userId;
       return new Promise<boolean>((response) => 
       this.postService.createPost(this.post).pipe(
         finalize(() => {

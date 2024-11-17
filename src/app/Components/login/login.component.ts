@@ -5,14 +5,11 @@ import {
   UntypedFormGroup,
   Validators,
 } from '@angular/forms';
-import { Router } from '@angular/router';
-import { finalize } from 'rxjs/operators';
+import { Store } from '@ngrx/store';
 import { AuthDTO } from 'src/app/Models/auth.dto';
-import { HeaderMenus } from 'src/app/Models/header-menus.dto';
-import { AuthService } from 'src/app/Services/auth.service';
-import { HeaderMenusService } from 'src/app/Services/header-menus.service';
-import { LocalStorageService } from 'src/app/Services/local-storage.service';
-import { SharedService } from 'src/app/Services/shared.service';
+import { AppState } from 'src/app/app.reducers';
+import * as AuthAction from '../../actions/auth.action';
+import { selectCredentials } from 'src/app/selectors/auth.selectors';
 
 @Component({
   selector: 'app-login',
@@ -27,11 +24,7 @@ export class LoginComponent implements OnInit {
 
   constructor(
     private formBuilder: UntypedFormBuilder,
-    private authService: AuthService,
-    private sharedService: SharedService,
-    private headerMenusService: HeaderMenusService,
-    private localStorageService: LocalStorageService,
-    private router: Router
+    private store: Store<AppState>,
   ) {
     this.loginUser = new AuthDTO('', '', '', '');
 
@@ -50,56 +43,21 @@ export class LoginComponent implements OnInit {
       email: this.email,
       password: this.password,
     });
+    this.store.select(selectCredentials).subscribe((credentials) => {
+      console.log('User ID:', credentials.user_id);
+      console.log('Access Token:', credentials.access_token);
+    });
   }
 
   ngOnInit(): void {}
 
   async login(): Promise<void> {
-    let responseOK: boolean = false;
-    let errorResponse: any;
-
-    this.loginUser.email = this.email.value;
-    this.loginUser.password = this.password.value;
-
-    this.authService.login(this.loginUser).pipe(
-      // Uso finalize porque al usar complete no funciona en caso de error
-      finalize(() => {
-        this.sharedService.managementToast(
-          'loginFeedback',
-          responseOK,
-          errorResponse
-        ).subscribe(() => {
-          if (responseOK) {
-            const headerInfo: HeaderMenus = {
-              showAuthSection: true,
-              showNoAuthSection: false,
-            };
-            // update options menu
-            this.headerMenusService.headerManagement.next(headerInfo);
-            this.router.navigateByUrl('home');
-          }
-        });
-      })
-    ).subscribe({
-      next: (authToken) => {
-        responseOK = true;
-        this.loginUser.user_id = authToken.user_id;
-        this.loginUser.access_token = authToken.access_token;
-        // save token to localstorage for next requests
-        this.localStorageService.set('user_id', this.loginUser.user_id);
-        this.localStorageService.set('access_token', this.loginUser.access_token);
-      },
-      error: (error: any) => {
-        responseOK = false;
-        errorResponse = error.error;
-        const headerInfo: HeaderMenus = {
-          showAuthSection: false,
-          showNoAuthSection: true,
-        };
-        this.headerMenusService.headerManagement.next(headerInfo);
-  
-        this.sharedService.errorLog(error.error);
-      }
-    });
+    const credentials: AuthDTO = {
+      email: this.email.value,
+      password: this.password.value,
+      user_id: '',
+      access_token: '',
+    };
+    this.store.dispatch(AuthAction.login({credentials}));
   }
 }

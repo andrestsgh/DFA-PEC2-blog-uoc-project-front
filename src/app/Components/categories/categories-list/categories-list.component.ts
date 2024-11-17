@@ -1,10 +1,12 @@
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
+import { Store } from '@ngrx/store';
 import { finalize } from 'rxjs/operators';
 import { CategoryDTO } from 'src/app/Models/category.dto';
 import { CategoryService } from 'src/app/Services/category.service';
-import { LocalStorageService } from 'src/app/Services/local-storage.service';
 import { SharedService } from 'src/app/Services/shared.service';
+import { AuthState } from 'src/app/reducers/auth.reducer';
+import { selectCredentials, selectUserId } from 'src/app/selectors/auth.selectors';
 
 @Component({
   selector: 'app-categories-list',
@@ -14,21 +16,30 @@ import { SharedService } from 'src/app/Services/shared.service';
 export class CategoriesListComponent {
   category!: CategoryDTO;
   categories!: CategoryDTO[];
+  private userId: string;
 
   constructor(
+    private store: Store<AuthState>,
     private categoryService: CategoryService,
     private router: Router,
-    private localStorageService: LocalStorageService,
     private sharedService: SharedService
   ) {
+    this.userId = "";
+    this.store.select(selectCredentials).subscribe((credentials) => {
+      console.log('User ID:', credentials.user_id);
+      console.log('Access Token:', credentials.access_token);
+    });
+    this.store.select(selectUserId).subscribe((userId) => {
+      this.userId = userId;
+    });
     this.loadCategories();
   }
 
-  private async loadCategories(): Promise<void> {
+  private loadCategories(): void {
     let errorResponse: any;
-    const userId = this.localStorageService.get('user_id');
-    if (userId) {
-      this.categoryService.getCategoriesByUserId(userId).subscribe({
+
+    if (this.userId) {
+      this.categoryService.getCategoriesByUserId(this.userId).subscribe({
         next: (categories: CategoryDTO[]) => {
           this.categories = categories;
         },
